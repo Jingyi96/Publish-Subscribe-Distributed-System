@@ -1,0 +1,18 @@
+# This file stores all the file or folders that should not be uploaded to open source platform
+
+# Binaries of file or plugin
+*.dylib
+*.exe
+*.exe~
+*.so
+*.dll
+
+# Test file
+*.test
+
+# Go workspace file
+go.work
+
+# Other cache
+.DS_*
+/bin
