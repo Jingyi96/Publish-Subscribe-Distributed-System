@@ -3,6 +3,7 @@ package domain
 import "encoding/gob"
 
 type MessageType int
+type HandshakeMessageType int
 
 const (
 	Normal MessageType = iota
@@ -20,6 +21,11 @@ const (
 	ReadClosed
 )
 
+const (
+	HelloFromClient HandshakeMessageType = iota
+	HelloFromServerPeer
+)
+
 type Message struct {
 	// the type of message
 	Type    MessageType
@@ -29,6 +35,12 @@ type Message struct {
 	SrcAddr string
 }
 
+type HandshakeMessage struct {
+	Type HandshakeMessageType
+	Addr string
+}
+
 func Register() {
+	gob.Register(HandshakeMessage{})
 	gob.Register(Message{})
 }
