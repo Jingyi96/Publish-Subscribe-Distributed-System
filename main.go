@@ -3,6 +3,10 @@ package main
 import (
 	f "flag"
 	"fmt"
+	s "strings"
+
+	"pub-sub/domain"
+	"pub-sub/server"
 )
 
 var (
@@ -13,10 +17,11 @@ var (
 
 func main() {
 	f.Parse()
+	domain.Register()
 
 	switch *mode {
 	case "server":
-		fmt.Println("This is server")
+		server.Run(*serverInfo, s.Split(*clientInfo, ","))
 	case "client":
 		fmt.Println("This is client")
 	}
