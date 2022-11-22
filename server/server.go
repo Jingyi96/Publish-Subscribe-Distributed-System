@@ -133,10 +133,10 @@ func (s *Server) handleClientRead(cc *PeerConn) {
 		if err != nil {
 			break
 		}
-		fmt.Printf("message: %+v\n", msg)
+		fmt.Printf("[LOG] Message: %+v\n", msg)
 		switch msg.Type {
 		case domain.Normal:
-			fmt.Printf("*** normal message: %v\n", msg)
+			fmt.Printf("[LOG] Normal message: %v\n", msg)
 			s.localMessageIngest <- msg
 		case domain.Subscribe:
 			s.subscriptionMgr.Subscribe(msg.Topic, cc)
