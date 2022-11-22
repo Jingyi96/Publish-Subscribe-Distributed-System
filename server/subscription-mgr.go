@@ -88,6 +88,7 @@ func (mgr *SubscriptionMgr) Publish(msg *domain.Message) {
 func (mgr *SubscriptionMgr) flush() {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
+
 	for topic, peers := range mgr.subs {
 		newPeers := make([]*PeerConn, 0, len(peers))
 		for _, peer := range peers {
