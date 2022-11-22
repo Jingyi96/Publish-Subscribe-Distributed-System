@@ -31,7 +31,7 @@ type Message struct {
 	Type    MessageType
 	Id      int64
 	Topic   string
-	Cotent  string
+	Content string
 	SrcAddr string
 }
 
