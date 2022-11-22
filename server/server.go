@@ -133,10 +133,10 @@ func (s *Server) handleClientRead(cc *PeerConn) {
 		if err != nil {
 			break
 		}
-		fmt.Printf("message: %+v\n", msg)
+		fmt.Printf("[LOG] Message: %+v\n", msg)
 		switch msg.Type {
 		case domain.Normal:
-			fmt.Printf("*** normal message: %v\n", msg)
+			fmt.Printf("[LOG] Normal message: %v\n", msg)
 			s.localMessageIngest <- msg
 		case domain.Subscribe:
 			s.subscriptionMgr.Subscribe(msg.Topic, cc)
@@ -218,8 +218,8 @@ func (s *Server) election() ServerStatus {
 		if err != nil {
 			continue
 		}
-		fmt.Printf("send election to %v\n", peerAddr)
-		sendElectionSuccessCount += 1
+		fmt.Printf("[LOG] Invitation to %v for election\n", peerAddr)
+		sendElectionSuccessCount++
 	}
 	if sendElectionSuccessCount == 0 {
 		s.becomeLeader()
@@ -230,7 +230,7 @@ func (s *Server) election() ServerStatus {
 
 func (s *Server) sendMsgToLeader(msg *domain.Message) ServerStatus {
 	if s.leaderAddr == s.localAddr {
-		panic("send msg to leader when leader")
+		panic("[LOG] Message sent if it is leader")
 	}
 	leaderConn, err := s.peerMgr.Get(s.leaderAddr)
 	if err != nil {
