@@ -19,7 +19,6 @@ func Run(serverAddr string, peerAddrs []string) {
 		peerAddrs = append(peerAddrs[1:], peerAddrs[0])
 		serverAddr = peerAddrs[0]
 		Run(serverAddr, peerAddrs)
-		// panic(err)
 	}
 
 	defer conn.Close()
@@ -36,8 +35,6 @@ func Run(serverAddr string, peerAddrs []string) {
 				peerAddrs = append(peerAddrs[1:], peerAddrs[0])
 				serverAddr = peerAddrs[0]
 				Run(serverAddr, peerAddrs)
-				// fmt.Println(err)
-				// break
 			}
 			fmt.Printf("%+v\n", msg)
 		}
@@ -52,7 +49,6 @@ func Run(serverAddr string, peerAddrs []string) {
 		peerAddrs = append(peerAddrs[1:], peerAddrs[0])
 		serverAddr = peerAddrs[0]
 		Run(serverAddr, peerAddrs)
-		// fmt.Println(err)
 		return
 	}
 
@@ -91,8 +87,6 @@ func Run(serverAddr string, peerAddrs []string) {
 			peerAddrs = append(peerAddrs[1:], peerAddrs[0])
 			serverAddr = peerAddrs[0]
 			Run(serverAddr, peerAddrs)
-			// fmt.Println(err)
-			// break
 		}
 	}
 }

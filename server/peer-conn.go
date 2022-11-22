@@ -4,8 +4,9 @@ import (
 	"encoding/gob"
 	"fmt"
 	"net"
-	"pub-sub/domain"
 	"sync"
+
+	"pub-sub/domain"
 )
 
 type PeerConn struct {
@@ -26,8 +27,23 @@ func NewPeerFromConn(conn net.Conn) *PeerConn {
 	}
 }
 
-func (p *PeerConn) IsClosed() bool {
-	return p.closed
+func NewPeerFromAddr(addr string, localAddr string) (*PeerConn, error) {
+	conn, err := net.Dial("tcp", addr)
+	if err != nil {
+		return nil, err
+	}
+	peerConn := NewPeerFromConn(conn)
+
+	err = peerConn.Write(&domain.HandshakeMessage{
+		Type: domain.HelloFromServerPeer,
+		Addr: localAddr,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return peerConn, nil
 }
 
 func (p *PeerConn) Close() {
@@ -39,17 +55,9 @@ func (p *PeerConn) Close() {
 	if p.closed {
 		return
 	}
-	fmt.Printf("Close connection from %s\n", p.conn.RemoteAddr())
+	fmt.Printf("close connection from %s\n", p.conn.RemoteAddr())
 	p.closed = true
 	p.conn.Close()
-}
-
-func (p *PeerConn) Read(msg interface{}) error {
-	err := p.dec.Decode(msg)
-	if err != nil {
-		p.Close()
-	}
-	return err
 }
 
 func (p *PeerConn) Write(msg interface{}) error {
@@ -60,22 +68,14 @@ func (p *PeerConn) Write(msg interface{}) error {
 	return err
 }
 
-func NewPeerFromAddr(addr string, localAddr string) (*PeerConn, error) {
-	conn, err := net.Dial("tcp", addr)
+func (p *PeerConn) Read(msg interface{}) error {
+	err := p.dec.Decode(msg)
 	if err != nil {
-		return nil, err
+		p.Close()
 	}
+	return err
+}
 
-	peerConn := NewPeerFromConn(conn)
-
-	err = peerConn.Write(
-		&domain.HandshakeMessage{
-			Type: domain.HelloFromServerPeer,
-			Addr: localAddr,
-		})
-
-	if err != nil {
-		return nil, err
-	}
-	return peerConn, nil
+func (p *PeerConn) IsClosed() bool {
+	return p.closed
 }

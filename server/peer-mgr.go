@@ -2,8 +2,9 @@ package server
 
 import (
 	"fmt"
-	"pub-sub/domain"
 	"sync"
+
+	"pub-sub/domain"
 )
 
 type PeerMgr struct {
@@ -25,13 +26,11 @@ func NewPeerMgr(localAddr string) *PeerMgr {
 
 func (mgr *PeerMgr) Put(addr string, peer *PeerConn) {
 	if addr == mgr.localAddr {
-		panic("Local address cannot be put ...")
+		panic("local addr can not be put")
 	}
-
-	fmt.Printf("Connection from %s (%s)\n", addr, peer.conn.RemoteAddr())
+	fmt.Printf("keep connection from %s (%s)\n", addr, peer.conn.RemoteAddr())
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
-
 	if oldConn, ok := mgr.peers[addr]; ok {
 		oldConn.Close()
 	}
@@ -48,11 +47,9 @@ func (mgr *PeerMgr) handlePeerMsg(addr string, peer *PeerConn) {
 			peer.Close()
 			break
 		}
-
 		fmt.Printf("peer: %s sends %v\n", peer.conn.RemoteAddr(), msg)
 		mgr.ch <- msg
 	}
-
 	mgr.ch <- &domain.Message{
 		Type:    domain.ReadClosed,
 		SrcAddr: addr,
