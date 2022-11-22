@@ -218,8 +218,8 @@ func (s *Server) election() ServerStatus {
 		if err != nil {
 			continue
 		}
-		fmt.Printf("send election to %v\n", peerAddr)
-		sendElectionSuccessCount += 1
+		fmt.Printf("[LOG] Invitation to %v for election\n", peerAddr)
+		sendElectionSuccessCount++
 	}
 	if sendElectionSuccessCount == 0 {
 		s.becomeLeader()
@@ -230,7 +230,7 @@ func (s *Server) election() ServerStatus {
 
 func (s *Server) sendMsgToLeader(msg *domain.Message) ServerStatus {
 	if s.leaderAddr == s.localAddr {
-		panic("send msg to leader when leader")
+		panic("[LOG] Message sent if it is leader")
 	}
 	leaderConn, err := s.peerMgr.Get(s.leaderAddr)
 	if err != nil {
