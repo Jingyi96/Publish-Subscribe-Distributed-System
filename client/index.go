@@ -53,7 +53,7 @@ func Run(serverAddr string, peerAddrs []string) {
 	}
 
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Println("Help: ")
+	fmt.Println("Hi! You have 3 available actions: ")
 	fmt.Println("1. subscribe  : s <topic>")
 	fmt.Println("2. unsubscribe: u <topic>")
 	fmt.Println("3. publish    : p <topic> <message>")
