@@ -49,7 +49,8 @@ func NewServer(listenAddr string, peerAddrs []string) *Server {
 		}
 	}
 
-	fmt.Printf("[LOG] Leader candidates: %v\nOthers: %v\n", leaderCandidates, otherPeers)
+	fmt.Printf("[LOG] Leader candidates: %v\n", leaderCandidates)
+	fmt.Printf("[LOG] Other peers: %v\n", otherPeers)
 
 	socket, err := net.Listen("tcp", listenAddr)
 	if err != nil {
