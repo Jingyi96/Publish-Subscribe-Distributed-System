@@ -8,26 +8,41 @@ import (
 )
 
 type SubscriptionMgr struct {
-	mu   sync.Mutex
-	subs map[string]([]*PeerConn)
+	mutex sync.Mutex
+	subs  map[string]([]*PeerConn)
 }
 
 func NewSubscriptionMgr() *SubscriptionMgr {
 	return &SubscriptionMgr{
-		mu:   sync.Mutex{},
-		subs: make(map[string]([]*PeerConn)),
+		mutex: sync.Mutex{},
+		subs:  make(map[string]([]*PeerConn)),
 	}
 }
 
-func (mgr *SubscriptionMgr) Get(topic string) []*PeerConn {
-	mgr.mu.Lock()
-	defer mgr.mu.Unlock()
-	return mgr.subs[topic]
+func mutex(mgr *SubscriptionMgr) {
+	mgr.mutex.Lock()
+	defer mgr.mutex.Unlock()
+}
+
+func (mgr *SubscriptionMgr) Publish(msg *domain.Message) {
+	mutex(mgr)
+
+	hasError := false
+	if peers, ok := mgr.subs[msg.Topic]; ok {
+		for _, peer := range peers {
+			err := peer.Write(msg)
+			if err != nil {
+				hasError = true
+			}
+		}
+	}
+	if hasError {
+		mgr.flush()
+	}
 }
 
 func (mgr *SubscriptionMgr) Subscribe(topic string, peer *PeerConn) {
-	mgr.mu.Lock()
-	defer mgr.mu.Unlock()
+	mutex(mgr)
 
 	fmt.Printf("[Subscribe] %s =====> Peers: %s\n", topic, peer.conn.RemoteAddr())
 	if candidates, ok := mgr.subs[topic]; ok {
@@ -43,8 +58,8 @@ func (mgr *SubscriptionMgr) Subscribe(topic string, peer *PeerConn) {
 }
 
 func (mgr *SubscriptionMgr) Unsubscribe(topic string, peer *PeerConn) {
-	mgr.mu.Lock()
-	defer mgr.mu.Unlock()
+	mutex(mgr)
+
 	fmt.Printf("[Unsubscribe] %s =====> peer: %s\n", topic, peer.conn.RemoteAddr())
 	if candidates, ok := mgr.subs[topic]; ok {
 		newPeers := make([]*PeerConn, 0, len(candidates))
@@ -61,33 +76,8 @@ func (mgr *SubscriptionMgr) Unsubscribe(topic string, peer *PeerConn) {
 	}
 }
 
-func (mgr *SubscriptionMgr) Cleanup() {
-	mgr.mu.Lock()
-	defer mgr.mu.Unlock()
-
-	mgr.flush()
-}
-
-func (mgr *SubscriptionMgr) Publish(msg *domain.Message) {
-	mgr.mu.Lock()
-	defer mgr.mu.Unlock()
-	hasError := false
-	if peers, ok := mgr.subs[msg.Topic]; ok {
-		for _, peer := range peers {
-			err := peer.Write(msg)
-			if err != nil {
-				hasError = true
-			}
-		}
-	}
-	if hasError {
-		mgr.flush()
-	}
-}
-
 func (mgr *SubscriptionMgr) flush() {
-	mgr.mu.Lock()
-	defer mgr.mu.Unlock()
+	mutex(mgr)
 
 	for topic, peers := range mgr.subs {
 		newPeers := make([]*PeerConn, 0, len(peers))

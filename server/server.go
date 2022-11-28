@@ -49,8 +49,7 @@ func NewServer(listenAddr string, peerAddrs []string) *Server {
 		}
 	}
 
-	fmt.Printf("[LOG] Leader candidates: %v\n", leaderCandidates)
-	fmt.Printf("[LOG] Other peers: %v\n", otherPeers)
+	fmt.Printf("[LOG] Leader candidates: %v\nOthers: %v\n", leaderCandidates, otherPeers)
 
 	socket, err := net.Listen("tcp", listenAddr)
 	if err != nil {
@@ -102,67 +101,12 @@ func (s *Server) Init() {
 	}
 }
 
-func (s *Server) acceptConn() {
-	for {
-		conn, err := s.listener.Accept()
-		if err != nil {
-			fmt.Println(err)
-			continue
-		}
-		go s.handleConn(conn)
-	}
-}
-
-func (s *Server) handleConn(conn net.Conn) {
-	pc := NewPeerFromConn(conn)
-	msg := &domain.HandshakeMessage{}
-	pc.Read(msg)
-
-	switch msg.Type {
-	case domain.HelloFromServerPeer:
-		s.peerMgr.Put(msg.Addr, pc)
-	case domain.HelloFromClient:
-		s.handleClientRead(pc)
-	}
-}
-
-func (s *Server) handleClientRead(cc *PeerConn) {
-	for {
-		msg := &domain.Message{}
-		err := cc.Read(msg)
-
-		if err != nil {
-			break
-		}
-		fmt.Printf("[LOG] Message: %+v\n", msg)
-		switch msg.Type {
-		case domain.Normal:
-			fmt.Printf("[LOG] Normal message: %v\n", msg)
-			s.localMessageIngest <- msg
-		case domain.Subscribe:
-			s.subscriptionMgr.Subscribe(msg.Topic, cc)
-		case domain.Unsubscribe:
-			s.subscriptionMgr.Unsubscribe(msg.Topic, cc)
-		default:
-			fmt.Printf("[ERROR] Unkown message format: %v\n", msg)
-		}
-	}
-}
-
-func (s *Server) stash(msg *domain.Message) {
-	select {
-	case s.stashMessage <- msg:
-	default:
-		// Stash fulled, do nothing
-	}
-}
-
 func (s *Server) waiting() ServerStatus {
 	select {
 	// if timeout, back to election status
 	case <-time.After(s.waitTimeout):
 		return Election
-	case msg := <-s.peerMgr.GetCh():
+	case msg := <-s.peerMgr.GetChan():
 		switch msg.Type {
 		case domain.Election:
 			s.sendElectionOk(msg.SrcAddr)
@@ -276,7 +220,7 @@ func (s *Server) follower() ServerStatus {
 	case msg := <-s.localMessageIngest:
 		return s.sendMsgToLeader(msg)
 
-	case msg := <-s.peerMgr.GetCh():
+	case msg := <-s.peerMgr.GetChan():
 		switch msg.Type {
 		case domain.Election:
 			s.sendElectionOk(msg.SrcAddr)
@@ -313,7 +257,7 @@ func (s *Server) leader() ServerStatus {
 		s.peerMgr.Boardcast(msg)
 		s.subscriptionMgr.Publish(msg)
 
-	case msg := <-s.peerMgr.GetCh():
+	case msg := <-s.peerMgr.GetChan():
 		switch msg.Type {
 		case domain.Election:
 			s.sendElectionOk(msg.SrcAddr)
@@ -348,7 +292,62 @@ func (status ServerStatus) Name() string {
 	return "Unknown"
 }
 
+func (s *Server) acceptConn() {
+	for {
+		conn, err := s.listener.Accept()
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+		go s.handleConn(conn)
+	}
+}
+
+func (s *Server) handleConn(conn net.Conn) {
+	pc := NewPeerFromConn(conn)
+	msg := &domain.HandshakeMessage{}
+	pc.Read(msg)
+
+	switch msg.Type {
+	case domain.HelloFromServerPeer:
+		s.peerMgr.Put(msg.Addr, pc)
+	case domain.HelloFromClient:
+		s.handleClientMessage(pc)
+	}
+}
+
+func (s *Server) handleClientMessage(cc *PeerConn) {
+	for {
+		msg := &domain.Message{}
+		err := cc.Read(msg)
+
+		if err != nil {
+			break
+		}
+		fmt.Printf("[LOG] Message: %+v\n", msg)
+		switch msg.Type {
+		case domain.Normal:
+			fmt.Printf("[LOG] Normal message: %v\n", msg)
+			s.localMessageIngest <- msg
+		case domain.Subscribe:
+			s.subscriptionMgr.Subscribe(msg.Topic, cc)
+		case domain.Unsubscribe:
+			s.subscriptionMgr.Unsubscribe(msg.Topic, cc)
+		default:
+			fmt.Printf("[ERROR] Unkown message format: %v\n", msg)
+		}
+	}
+}
+
 func (s *Server) updateMessageId(msg *domain.Message) {
 	msg.Id = s.nextMsgId
 	s.nextMsgId++
+}
+
+func (s *Server) stash(msg *domain.Message) {
+	select {
+	case s.stashMessage <- msg:
+	default:
+		// Stash fulled, do nothing
+	}
 }
