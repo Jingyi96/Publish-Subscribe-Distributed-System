@@ -46,20 +46,6 @@ func NewPeerFromAddr(addr string, localAddr string) (*PeerConn, error) {
 	return peerConn, nil
 }
 
-func (p *PeerConn) Close() {
-	if p.closed {
-		return
-	}
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	if p.closed {
-		return
-	}
-	fmt.Printf("close connection from %s\n", p.conn.RemoteAddr())
-	p.closed = true
-	p.conn.Close()
-}
-
 func (p *PeerConn) Write(msg interface{}) error {
 	err := p.enc.Encode(msg)
 	if err != nil {
@@ -74,6 +60,20 @@ func (p *PeerConn) Read(msg interface{}) error {
 		p.Close()
 	}
 	return err
+}
+
+func (p *PeerConn) Close() {
+	if p.closed {
+		return
+	}
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.closed {
+		return
+	}
+	fmt.Printf("close connection from %s\n", p.conn.RemoteAddr())
+	p.closed = true
+	p.conn.Close()
 }
 
 func (p *PeerConn) IsClosed() bool {

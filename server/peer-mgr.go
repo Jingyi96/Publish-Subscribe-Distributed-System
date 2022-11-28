@@ -29,8 +29,7 @@ func (mgr *PeerMgr) Put(addr string, peer *PeerConn) {
 		panic("local addr can not be put")
 	}
 	fmt.Printf("keep connection from %s (%s)\n", addr, peer.conn.RemoteAddr())
-	mgr.mu.Lock()
-	defer mgr.mu.Unlock()
+	peermutex(mgr)
 	if oldConn, ok := mgr.peers[addr]; ok {
 		oldConn.Close()
 	}
@@ -56,13 +55,12 @@ func (mgr *PeerMgr) handlePeerMsg(addr string, peer *PeerConn) {
 	}
 }
 
-func (mgr *PeerMgr) GetCh() <-chan *domain.Message {
+func (mgr *PeerMgr) GetChan() <-chan *domain.Message {
 	return mgr.ch
 }
 
 func (mgr *PeerMgr) Get(addr string) (*PeerConn, error) {
-	mgr.mu.Lock()
-	defer mgr.mu.Unlock()
+	peermutex(mgr)
 	if oldConn, ok := mgr.peers[addr]; !ok || oldConn.IsClosed() {
 		peerConn, err := NewPeerFromAddr(addr, mgr.localAddr)
 		if err != nil {
@@ -77,16 +75,22 @@ func (mgr *PeerMgr) Get(addr string) (*PeerConn, error) {
 	}
 }
 
-func (mgr *PeerMgr) Remove(addr string) {
-	mgr.mu.Lock()
-	defer mgr.mu.Unlock()
-	delete(mgr.peers, addr)
-}
-
-func (mgr *PeerMgr) Cleanup() []string {
-	mgr.mu.Lock()
-	defer mgr.mu.Unlock()
-	return mgr.cleanup()
+func (mgr *PeerMgr) Boardcast(msg *domain.Message) {
+	peermutex(mgr)
+	hasError := false
+	for _, peer := range mgr.peers {
+		if peer.IsClosed() {
+			continue
+		}
+		err := peer.Write(msg)
+		if err != nil {
+			hasError = true
+			peer.Close()
+		}
+	}
+	if hasError {
+		mgr.cleanup()
+	}
 }
 
 func (mgr *PeerMgr) cleanup() []string {
@@ -105,21 +109,7 @@ func (mgr *PeerMgr) cleanup() []string {
 	return active
 }
 
-func (mgr *PeerMgr) Boardcast(msg *domain.Message) {
+func peermutex(mgr *PeerMgr) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
-	hasError := false
-	for _, peer := range mgr.peers {
-		if peer.IsClosed() {
-			continue
-		}
-		err := peer.Write(msg)
-		if err != nil {
-			hasError = true
-			peer.Close()
-		}
-	}
-	if hasError {
-		mgr.cleanup()
-	}
 }

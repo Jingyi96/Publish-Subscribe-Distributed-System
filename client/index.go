@@ -12,10 +12,11 @@ import (
 )
 
 func Run(serverAddr string, peerAddrs []string) {
-	fmt.Println("client starts")
+	fmt.Println("Client starts")
 	conn, err := net.Dial("tcp", serverAddr)
 	if err != nil {
-		fmt.Println("error connecting to server")
+		fmt.Println("Error connecting to server")
+		fmt.Println("Try connecting to server again...")
 		peerAddrs = append(peerAddrs[1:], peerAddrs[0])
 		serverAddr = peerAddrs[0]
 		Run(serverAddr, peerAddrs)
